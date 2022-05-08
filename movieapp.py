@@ -1,5 +1,8 @@
+from re import M, search
 import tkinter as tk
+from tkinter.scrolledtext import ScrolledText
 from turtle import back
+import csv
 
 import mysql.connector
 import smtplib
@@ -35,6 +38,121 @@ def createTables():
     mydb.commit()
 
 
+def movieintodb():
+    with open("movies.csv") as file:
+        csv_file = csv.reader(file, delimiter="\t")
+        sql = "INSERT INTO movie (movieID, name, year) VALUES (%s, %s, %s)"
+        for line in csv_file:
+            print(line)
+            break
+            vals = (line[0], line[1], line[2])
+            mycursor.execute(sql, vals)
+            mydb.commit()
+    print("done")
+
+
+movieintodb()
+
+
+def search_entry(window, search_entry):
+    title = search_entry.get()
+    mycursor.execute(f"SELECT * FROM movie WHERE name LIKE {title}")
+    titles_tuple = mycursor.fetchall()
+    titles_var = tk.StringVar(value=titles_tuple)
+    listbox = tk.Listbox(window, listvariable=titles_var,
+                         height=6, selectmode='extended')
+    listbox.grid(row=0, column=0)
+
+
+def search_movies(main_window):
+    main_window.destroy()
+    search_window = tk.Tk()
+    search_window.title('Movie App Database: View Movies')
+    window_width = 1200
+    window_height = 750
+    search_window.configure(bg="#AF8FE9")
+
+    # get the screen dimension
+    screen_width = search_window.winfo_screenwidth()
+    screen_height = search_window.winfo_screenheight()
+
+    # find the center point
+    center_x = int(screen_width/2 - window_width / 2)
+    center_y = int(screen_height/2 - window_height / 2)
+
+    # set the position of the window to the center of the screen
+    search_window.geometry(
+        f'{window_width}x{window_height}+{center_x}+{center_y}')
+    search_window.minsize(600, 400)
+    search_window.maxsize(1200, 750)
+
+    search_label = tk.Label(search_window, text='Search: ',
+                            fg="black", bg='#AF8FE9', width=50)
+    search_entry = tk.Entry(search_window, fg="black",
+                            bg="white", width=25)
+    search_label.grid(row=0, column=0)
+    search_entry.grid(row=0, column=1)
+    search_button = tk.Button(search_window, text='Submit',
+                              bg='#ACD1AF', height=2, width=15, command=lambda: search_entry(search_window, search_entry))
+    search_button.grid(row=1, column=1)
+    back_button = tk.Button(
+        search_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(search_window))
+    back_button.grid(row=6, column=1)
+
+    search_window.mainloop()
+
+
+def add_movie(main_window):
+    main_window.destroy()
+    add_window = tk.Tk()
+    add_window.title('Movie App Database: Add Movie')
+    window_width = 1200
+    window_height = 750
+    add_window.configure(bg="#AF8FE9")
+
+    # get the screen dimension
+    screen_width = add_window.winfo_screenwidth()
+    screen_height = add_window.winfo_screenheight()
+
+    # find the center point
+    center_x = int(screen_width/2 - window_width / 2)
+    center_y = int(screen_height/2 - window_height / 2)
+
+    # set the position of the window to the center of the screen
+    add_window.geometry(
+        f'{window_width}x{window_height}+{center_x}+{center_y}')
+    add_window.minsize(600, 400)
+    add_window.maxsize(1200, 750)
+    # place code here
+
+    add_window.mainloop()
+
+
+def remove_movie(main_window):
+    main_window.destroy()
+    remove_window = tk.Tk()
+    remove_window.title('Movie App Database: Remove Movie')
+    window_width = 1200
+    window_height = 750
+    remove_window.configure(bg="#AF8FE9")
+
+    # get the screen dimension
+    screen_width = remove_window.winfo_screenwidth()
+    screen_height = remove_window.winfo_screenheight()
+
+    # find the center point
+    center_x = int(screen_width/2 - window_width / 2)
+    center_y = int(screen_height/2 - window_height / 2)
+
+    # set the position of the window to the center of the screen
+    remove_window.geometry(
+        f'{window_width}x{window_height}+{center_x}+{center_y}')
+    remove_window.minsize(600, 400)
+    remove_window.maxsize(1200, 750)
+
+    remove_window.mainloop()
+
+
 def send_entry(window, entry1, entry2, entry3, entry4, date_entry, time_entry):
     r1 = entry1.get()
     r2 = entry2.get()
@@ -65,7 +183,8 @@ def send_entry(window, entry1, entry2, entry3, entry4, date_entry, time_entry):
             server.sendmail(sender_email, reciever_email, message)
 
 
-def send_invitation():
+def send_invitation(main_window):
+    main_window.destroy()
     send_window = tk.Tk()
     send_window.title('Movie App Database: Send Invitation')
     window_width = 1200
@@ -119,14 +238,15 @@ def send_invitation():
     time_label.grid(row=4, column=0)
     date_label.grid(row=5, column=0)
     date_entry.grid(row=5, column=1)
-    back_button = tk.Button(
+    submit_button = tk.Button(
         send_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: send_entry(send_window, rEntry1, rEntry2, rEntry3, rEntry4, date_entry, time_entry))
-    back_button.grid(row=6, column=1)
+    submit_button.grid(row=6, column=1)
 
     send_window.mainloop()
 
 
-def main_menu():
+def main_menu(window):
+    window.destroy()
     mainmenu_window = tk.Tk()
     mainmenu_window.title('Movie App Database: Main Menu')
     window_width = 1200
@@ -149,19 +269,25 @@ def main_menu():
     pick_button = tk.Button(mainmenu_window, text='Pick a Random Movie',
                             bg='#ACD1AF', height=2, width=15)
     pick_button.pack(side='top')
+
+    # If clicked, goes tot he view movies window
     view_button = tk.Button(
-        mainmenu_window, text='View All Movies', bg='#ACD1AF', height=2, width=15)
+        mainmenu_window, text='View All Movies', bg='#ACD1AF', height=2, width=15, command=lambda: search_movies(mainmenu_window))
     view_button.pack(side='top')
+
+    # If Clicked, goes to the add movie window
     add_button = tk.Button(
-        mainmenu_window, text='Add a Movie', bg='#ACD1AF', height=2, width=15)
+        mainmenu_window, text='Add a Movie', bg='#ACD1AF', height=2, width=15, command=lambda: add_movie(mainmenu_window))
     add_button.pack(side='top')
+
+    # If clicked, goes to the delete movie window
     delete_button = tk.Button(
-        mainmenu_window, text='Remove a Movie', bg='#ACD1AF', height=2, width=15)
+        mainmenu_window, text='Remove a Movie', bg='#ACD1AF', height=2, width=15, command=lambda: remove_movie(mainmenu_window))
     delete_button.pack(side='top')
 
     # If clicked, goes to the send invite window
     send_button = tk.Button(
-        mainmenu_window, text='Send Invitation', bg='#ACD1AF', height=2, width=15, command=send_invitation)
+        mainmenu_window, text='Send Invitation', bg='#ACD1AF', height=2, width=15, command=lambda: send_invitation(mainmenu_window))
     send_button.pack(side='top')
 
     # If cliked, destroys the window and quits the application
@@ -181,6 +307,7 @@ def newUser_getEntry(newuser_window, entry1, entry2, entry3):
 
     # Sets global variable for ease of use
     userEmail = email
+    user_name = name
 
     # Inserts the user data into the database
     sql = "INSERT INTO user (name, email, password) VALUES (%s, %s, %s)"
@@ -190,8 +317,7 @@ def newUser_getEntry(newuser_window, entry1, entry2, entry3):
     print("Successfully added the new user to the database.")
 
     # Destroys the window and goes to the main_menu
-    newuser_window.destroy()
-    main_menu()
+    main_menu(newuser_window)
 
 
 # Creates entry boxes for user to enter name, email, and password
@@ -279,9 +405,8 @@ def login_entry(window, email_entry, password_entry):
                     window, text='Incorrect Password', fg="red", bg='#AF8FE9', width=50)
                 incorrect_label.grid(row=3, column=0)
             else:
-                # Correct, destroy the login window and go to the main menu window
-                window.destroy()
-                main_menu()
+                # Correct go to the main menu window
+                main_menu(window)
 
 
 def login():
