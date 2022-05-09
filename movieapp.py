@@ -2,6 +2,7 @@ from re import M, search
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 from turtle import back
+import random
 import csv
 
 import mysql.connector
@@ -27,7 +28,7 @@ recipients = ()
 # Unneeded, to show how the columnds are made and with what data types each column is.
 def createTables():
     mycursor.execute(
-        "CREATE TABLE movie(movieID VARCHAR(25), name VARCHAR(20), year TINYINT, PRIMARY KEY(movieID))")
+        "CREATE TABLE movie(movieID VARCHAR(25), name VARCHAR(100), year SMALLINT, PRIMARY KEY(movieID))")
     mycursor.execute(
         "CREATE TABLE genre(genreID SMALLINT, name VARCHAR(15), PRIMARY KEY(genreID))")
     mycursor.execute(
@@ -38,30 +39,72 @@ def createTables():
     mydb.commit()
 
 
+# adds movies into the db from the csv file
 def movieintodb():
     with open("movies.csv") as file:
         csv_file = csv.reader(file, delimiter="\t")
         sql = "INSERT INTO movie (movieID, name, year) VALUES (%s, %s, %s)"
         for line in csv_file:
-            print(line)
-            break
-            vals = (line[0], line[1], line[2])
-            mycursor.execute(sql, vals)
-            mydb.commit()
+            nline = line[0].split("|")
+            if nline[0] != 'tt0011801':
+                print(nline)
+                vals = (nline[0].strip(','), nline[1].strip(
+                    ','), int(((str(nline[2]).strip(',')).strip("\"")).strip("'").strip(",")))
+                mycursor.execute(sql, vals)
+                mydb.commit()
     print("done")
 
 
-movieintodb()
+def generateRandomMovie(window):
+    # pick a random movie
+    mycursor.execute("SELECT name FROM movie")
+    names = mycursor.fetchall()
+    movie_ind = random.randrange(len(names))
+    movie_label = tk.Label(window, text=names[movie_ind],
+                           fg="black", bg='#AF8FE9', width=50)
+    movie_label.pack(side='top')
 
 
-def search_entry(window, search_entry):
-    title = search_entry.get()
-    mycursor.execute(f"SELECT * FROM movie WHERE name LIKE {title}")
+def random_movie(window):
+    window.destroy()
+    random_window = tk.Tk()
+    random_window.title('Movie App Database: Random')
+    window_width = 1200
+    window_height = 750
+    random_window.configure(bg="#AF8FE9")
+
+    # get the screen dimension
+    screen_width = random_window.winfo_screenwidth()
+    screen_height = random_window.winfo_screenheight()
+
+    # find the center point
+    center_x = int(screen_width/2 - window_width / 2)
+    center_y = int(screen_height/2 - window_height / 2)
+
+    # set the position of the window to the center of the screen
+    random_window.geometry(
+        f'{window_width}x{window_height}+{center_x}+{center_y}')
+    random_window.minsize(600, 400)
+    random_window.maxsize(1200, 750)
+
+    random_button = tk.Button(random_window, text='Generate Random Movie',
+                              bg='#ACD1AF', height=2, width=15, command=lambda: generateRandomMovie(random_window))
+    random_button.pack(side='top')
+    back_button = tk.Button(
+        random_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(random_window))
+    back_button.pack(side='bottom')
+
+    random_window.mainloop()
+
+
+def searchentry(window, sentry):
+    title = sentry.get()
+    mycursor.execute(f"SELECT name, year FROM movie WHERE name = \'{title}\'")
     titles_tuple = mycursor.fetchall()
-    titles_var = tk.StringVar(value=titles_tuple)
-    listbox = tk.Listbox(window, listvariable=titles_var,
-                         height=6, selectmode='extended')
-    listbox.grid(row=0, column=0)
+    for i in titles_tuple:
+        newLabel = tk.Label(window, text=i,
+                            fg="black", bg='#AF8FE9', width=50)
+        newLabel.grid(row=4, column=1)
 
 
 def search_movies(main_window):
@@ -93,7 +136,7 @@ def search_movies(main_window):
     search_label.grid(row=0, column=0)
     search_entry.grid(row=0, column=1)
     search_button = tk.Button(search_window, text='Submit',
-                              bg='#ACD1AF', height=2, width=15, command=lambda: search_entry(search_window, search_entry))
+                              bg='#ACD1AF', height=2, width=15, command=lambda: searchentry(search_window, search_entry))
     search_button.grid(row=1, column=1)
     back_button = tk.Button(
         search_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(search_window))
@@ -228,6 +271,9 @@ def send_invitation(main_window):
     rEntry4.grid(row=3, column=1)
 
     # Time label and entry box
+    movie_label = tk.Label(send_window, text='Movie: ',
+                           fg="black", bg='#AF8FE9', width=50)
+    movie_entry = tk.Entry(send_window, fg="black", bg="white", width=25)
     time_label = tk.Label(send_window, text='Time: ',
                           fg="black", bg='#AF8FE9', width=50)
     date_label = tk.Label(send_window, text='Date: ',
@@ -238,9 +284,14 @@ def send_invitation(main_window):
     time_label.grid(row=4, column=0)
     date_label.grid(row=5, column=0)
     date_entry.grid(row=5, column=1)
+    movie_label.grid(row=6, column=0)
+    movie_entry.grid(row=6, column=1)
     submit_button = tk.Button(
         send_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: send_entry(send_window, rEntry1, rEntry2, rEntry3, rEntry4, date_entry, time_entry))
-    submit_button.grid(row=6, column=1)
+    submit_button.grid(row=7, column=1)
+    back_button = tk.Button(
+        send_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(send_window))
+    back_button.grid(row=8, column=1)
 
     send_window.mainloop()
 
@@ -266,8 +317,10 @@ def main_menu(window):
         f'{window_width}x{window_height}+{center_x}+{center_y}')
     mainmenu_window.minsize(600, 400)
     mainmenu_window.maxsize(1200, 750)
+
+    # If clicked, will go to the Random Movie window
     pick_button = tk.Button(mainmenu_window, text='Pick a Random Movie',
-                            bg='#ACD1AF', height=2, width=15)
+                            bg='#ACD1AF', height=2, width=15, command=lambda: random_movie(mainmenu_window))
     pick_button.pack(side='top')
 
     # If clicked, goes tot he view movies window
@@ -362,6 +415,10 @@ def new_user(login_window):
     password_label.grid(row=2, column=0)
     password_entry.grid(row=2, column=1)
     submit_button.grid(row=3, column=1)
+
+    back_button = tk.Button(newuser_window, text='Back',
+                            bg='#ACD1AF', height=2, width=15, command=lambda: login(newuser_window))
+    back_button.grid(row=4, column=1)
     newuser_window.mainloop()
 
 
@@ -409,7 +466,8 @@ def login_entry(window, email_entry, password_entry):
                 main_menu(window)
 
 
-def login():
+def login(window):
+    window.destroy()
     login_window = tk.Tk()
     login_window.title('Movie Database App: Log In')
     window_width = 1200
@@ -457,7 +515,8 @@ def login():
     login_window.mainloop()
 
 
-login()
+window = tk.Tk()
+login(window)
 
 mydb.close()
 # "#AF8FE9"
