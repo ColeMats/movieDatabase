@@ -1,4 +1,4 @@
-from re import M, search
+from re import M, U, search
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 from turtle import back
@@ -171,6 +171,16 @@ def add_movie(main_window):
     add_window.mainloop()
 
 
+def remove_entry_button(window, entry):
+    title = entry.get()
+    mycursor.execute(f"DELETE FROM movie WHERE name = \'{title}\'")
+    mydb.commit()
+    donestr = f"{title} has been successfully removed from the database."
+    done_label = tk.Label(window, text=donestr,
+                          fg="black", bg='#AF8FE9', width=50)
+    done_label.grid(row=3, column=1)
+
+
 def remove_movie(main_window):
     main_window.destroy()
     remove_window = tk.Tk()
@@ -192,6 +202,18 @@ def remove_movie(main_window):
         f'{window_width}x{window_height}+{center_x}+{center_y}')
     remove_window.minsize(600, 400)
     remove_window.maxsize(1200, 750)
+
+    movie_label = tk.Label(remove_window, text='Title of Movie: ',
+                           fg="black", bg='#AF8FE9', width=50)
+    movie_entry = tk.Entry(remove_window, fg="black", bg="white", width=50)
+    movie_label.grid(row=0, column=0)
+    movie_entry.grid(row=0, column=1)
+    submit_button = tk.Button(
+        remove_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: remove_movie(movie_entry))
+    submit_button.grid(row=1, column=1)
+    back_button = tk.Button(
+        remove_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(remove_window))
+    back_button.grid(row=2, column=1)
 
     remove_window.mainloop()
 
@@ -515,8 +537,8 @@ def login(window):
     login_window.mainloop()
 
 
-window = tk.Tk()
-login(window)
+fwindow = tk.Tk()
+login(fwindow)
 
 mydb.close()
 # "#AF8FE9"
