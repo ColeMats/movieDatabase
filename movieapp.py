@@ -12,7 +12,7 @@ import ssl
 
 # Connects database
 mydb = mysql.connector.connect(
-    host="localhost", user="root", password="Password1!",  auth_plugin='mysql_native_password', database='movies_and_shows')
+    host="localhost", user="root", password="Password1",  auth_plugin='mysql_native_password', database='movies_and_shows')
 mycursor = mydb.cursor()
 print(mydb)
 
@@ -167,9 +167,39 @@ def add_movie(main_window):
     add_window.minsize(600, 400)
     add_window.maxsize(1200, 750)
     # place code here
+    rEntry2_label = tk.Label(add_window, text='Name: ',
+                             fg="black", bg='#AF8FE9', width=50)
+    rEntry3_label = tk.Label(add_window, text='Year: ',
+                             fg="black", bg='#AF8FE9', width=50)
+    rEntry2_label.grid(row=0, column=0)
+    rEntry3_label.grid(row=1, column=0)
+    rEntry2 = tk.Entry(add_window, fg="black", bg="white", width=50)
+    rEntry3 = tk.Entry(add_window, fg="black", bg="white", width=50)
+
+    rEntry2.grid(row=0, column=1)
+    rEntry3.grid(row=1, column=1)
+
+    submit_button = tk.Button(
+        add_window, text='Submit', bg='#ACD1AF', height=2, width=15,
+         command=lambda: add_entry( rEntry2, rEntry3))
+    submit_button.grid(row=6, column=1)
+    
 
     add_window.mainloop()
 
+def add_entry(name, year):
+    
+    mycursor.execute("SELECT MAX(movieID) FROM movie")
+    result = mycursor.fetchall()
+    if result[0][0] == None:
+        movieID = "tt0"
+    else:
+        movieID = str(result[0][0] + 1)
+
+    sql = "INSERT INTO movie (movieID, name, year) VALUES (%s, %s, %s)"
+    vals = (movieID, name, year)
+    mycursor.execute(sql, vals)
+    mydb.commit()
 
 def remove_entry_button(window, entry):
     title = entry.get()
