@@ -1,6 +1,8 @@
+from ipaddress import collapse_addresses
 from re import M, U, search
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
+from tkinter.tix import COLUMN
 from turtle import back
 import random
 import csv
@@ -65,6 +67,10 @@ def generateRandomMovie(window):
     movie_label.pack(side='top')
 
 
+def send_invite(window):
+    return 1
+
+
 def random_movie(window):
     window.destroy()
     random_window = tk.Tk()
@@ -93,6 +99,9 @@ def random_movie(window):
     back_button = tk.Button(
         random_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(random_window))
     back_button.pack(side='bottom')
+    sendinvite_button = tk.Button(random_window, text='Send Invite', bg='#ACD1AF',
+                                  height=2, width=15, command=lambda: send_invite(random_window))
+    sendinvite_button.pack(side='bottom')
 
     random_window.mainloop()
 
@@ -104,7 +113,7 @@ def searchentry(window, sentry):
     for i in titles_tuple:
         newLabel = tk.Label(window, text=i,
                             fg="black", bg='#AF8FE9', width=50)
-        newLabel.grid(row=4, column=1)
+        newLabel.grid(row=1, column=1)
 
 
 def search_movies(main_window):
@@ -137,7 +146,7 @@ def search_movies(main_window):
     search_entry.grid(row=0, column=1)
     search_button = tk.Button(search_window, text='Submit',
                               bg='#ACD1AF', height=2, width=15, command=lambda: searchentry(search_window, search_entry))
-    search_button.grid(row=1, column=1)
+    search_button.grid(row=2, column=1)
     back_button = tk.Button(
         search_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(search_window))
     back_button.grid(row=6, column=1)
@@ -167,18 +176,64 @@ def add_movie(main_window):
     add_window.minsize(600, 400)
     add_window.maxsize(1200, 750)
     # place code here
+    rEntry2_label = tk.Label(add_window, text='Name: ',
+                             fg="black", bg='#AF8FE9', width=50)
+    rEntry3_label = tk.Label(add_window, text='Year: ',
+                             fg="black", bg='#AF8FE9', width=50)
+    rEntry2_label.grid(row=0, column=0)
+    rEntry3_label.grid(row=1, column=0)
+    rEntry2 = tk.Entry(add_window, fg="black", bg="white", width=50)
+    rEntry3 = tk.Entry(add_window, fg="black", bg="white", width=50)
+
+    rEntry2.grid(row=0, column=1)
+    rEntry3.grid(row=1, column=1)
+
+    submit_button = tk.Button(
+        add_window, text='Submit', bg='#ACD1AF', height=2, width=15,
+        command=lambda: add_entry(rEntry2, rEntry3))
+    submit_button.grid(row=2, column=1)
+    back_button = tk.Button(
+        add_window, text='Back', bg='#ACD1AF', height=2, width=15,
+        command=lambda: main_menu(add_window))
+    back_button.grid(row=3, column=1)
 
     add_window.mainloop()
 
 
+def add_entry(name, year):
+
+    mycursor.execute("SELECT MAX(movieID) FROM movie")
+    result = mycursor.fetchall()
+    if result[0][0] == None:
+        movieID = "tt0"
+    else:
+        movieID = str(result[0][0] + 1)
+
+    sql = "INSERT INTO movie (movieID, name, year) VALUES (%s, %s, %s)"
+    vals = (movieID, name, year)
+    mycursor.execute(sql, vals)
+    mydb.commit()
+
+
 def remove_entry_button(window, entry):
     title = entry.get()
+
+    # Check if movie is stored in database
+    mycursor.execute(f"SELECT * FROM movie WHERE name = \'{title}\'")
+    q1 = mycursor.fetchall()
+    print
+    for i in q1:
+        for j in i:
+            if title in j == False:
+                unavailable_label = tk.Label(window, text='Movie Not In Database',
+                                             fg="black", bg='#AF8FE9', width=50)
+                unavailable_label.grid(row=3, column=0)
     mycursor.execute(f"DELETE FROM movie WHERE name = \'{title}\'")
     mydb.commit()
     donestr = f"{title} has been successfully removed from the database."
     done_label = tk.Label(window, text=donestr,
                           fg="black", bg='#AF8FE9', width=50)
-    done_label.grid(row=3, column=1)
+    done_label.grid(row=4, column=1)
 
 
 def remove_movie(main_window):
@@ -209,7 +264,7 @@ def remove_movie(main_window):
     movie_label.grid(row=0, column=0)
     movie_entry.grid(row=0, column=1)
     submit_button = tk.Button(
-        remove_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: remove_movie(movie_entry))
+        remove_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: remove_movie(remove_window, movie_entry))
     submit_button.grid(row=1, column=1)
     back_button = tk.Button(
         remove_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(remove_window))
@@ -347,7 +402,7 @@ def main_menu(window):
 
     # If clicked, goes tot he view movies window
     view_button = tk.Button(
-        mainmenu_window, text='View All Movies', bg='#ACD1AF', height=2, width=15, command=lambda: search_movies(mainmenu_window))
+        mainmenu_window, text='Search', bg='#ACD1AF', height=2, width=15, command=lambda: search_movies(mainmenu_window))
     view_button.pack(side='top')
 
     # If Clicked, goes to the add movie window
@@ -538,7 +593,16 @@ def login(window):
 
 
 fwindow = tk.Tk()
-login(fwindow)
+# login(fwindow)
+
+mycursor.execute("SELECT * FROM movie")
+f = mycursor.fetchall()
+n = 0
+for i in f:
+    print(i)
+    n += 1
+    if (n == 100):
+        break
 
 mydb.close()
 # "#AF8FE9"
