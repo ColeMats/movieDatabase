@@ -17,7 +17,7 @@ import ssl
 
 # Connects database
 mydb = mysql.connector.connect(
-    host="localhost", user="root", password="Password1!",  auth_plugin='mysql_native_password', database='movies_and_shows')
+    host="localhost", user="root", password="Password1",  auth_plugin='mysql_native_password', database='movies_and_shows')
 mycursor = mydb.cursor()
 print(mydb)
 
@@ -291,15 +291,32 @@ def add_movie(main_window):
 
     submit_button = tk.Button(
         add_window, text='Submit', bg='#ACD1AF', height=2, width=15,
+
         command=lambda: add_entry(rEntry2, rEntry3))
     submit_button.grid(row=2, column=1)
     back_button = tk.Button(
         add_window, text='Back', bg='#ACD1AF', height=2, width=15,
         command=lambda: main_menu(add_window))
     back_button.grid(row=3, column=1)
+         command=lambda: add_entry( rEntry2, rEntry3))
+    submit_button.grid(row=6, column=1)
+   
 
     add_window.mainloop()
 
+def add_entry(name, year):
+    
+    mycursor.execute("SELECT MAX(movieID) FROM movie")
+    result = mycursor.fetchall()
+    if result[0][0] == None:
+        movieID = "tt0"
+    else:
+        movieID = str(result[0][0] + 1)
+
+    sql = "INSERT INTO movie (movieID, name, year) VALUES (%s, %s, %s)"
+    vals = (movieID, name, year)
+    mycursor.execute(sql, vals)
+    mydb.commit()
 
 def add_entry(name, year):
 
