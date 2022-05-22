@@ -1,9 +1,14 @@
+from ipaddress import collapse_addresses
 from re import M, U, search
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
+from tkinter.tix import COLUMN
 from turtle import back
 import random
 import csv
+
+import yagmail
+from email.mime.text import MIMEText
 
 import mysql.connector
 import smtplib
@@ -17,12 +22,45 @@ mycursor = mydb.cursor()
 print(mydb)
 
 
+# inserts all genres into the genre table
+def insert_genres():
+    sql = "INSERT INTO genre(genreID, name) VALUES(%s, %s)"
+    vals = [(1, "Action"), (2, "Adventure"), (3, "Comedy"), (4, "Documentary"), (5, "History"), (6, "War"), (7, "Drama"), (8, "Thriller"), (9, "Biography"),
+            (10, "Family"), (11, "Fantasy"), (12, "Crime"), (13, "Null"), (14, "Sci-fi"), (15, "Mystery"), (16, "Romance"), (17, "Horror"), (18, "Music"), (19, "Sport"), (20, "Animation"), (21, "Reality-TV"), (22, "Musical")]
+    mycursor.executemany(sql, vals)
+    mydb.commit()
+
+
+# inserts all movies and genres to the movie_genre table
+def insert_genremovie():
+    sql = "INSERT INTO movie_genre(movieID, genreID) VALUES (%s, %s)"
+    vals = []
+    genreId = ""
+    with open("moviegenres.csv") as file:
+        csv_file = csv.reader(file, delimiter="\t")
+        for line in csv_file:
+            movieId = line[0]
+            for i in line[1]:
+                if 'N' in i:
+                    vals += (movieId, "Null")
+                else:
+                    mycursor.execute(
+                        f"SELECT genreID FROM genre WHERE name = \"{line[1]}\"")
+                    g = mycursor.fetchall()
+                    for k in g[0]:
+                        genreId = k
+                    vals += (movieId, genreId)
+    mycursor.executemany(sql, vals)
+    mydb.commit()
+
+
 # Global variables to store the user's information for writing emails easier
 userEmail = ""
 user_name = ""
 time = ""
 date = ""
 recipients = ()
+M_movie = None
 
 
 # Unneeded, to show how the columnds are made and with what data types each column is.
@@ -60,9 +98,26 @@ def generateRandomMovie(window):
     mycursor.execute("SELECT name FROM movie")
     names = mycursor.fetchall()
     movie_ind = random.randrange(len(names))
-    movie_label = tk.Label(window, text=names[movie_ind],
+    M_movie = names[movie_ind]
+    movie_label = tk.Label(window, text=M_movie,
                            fg="black", bg='#AF8FE9', width=50)
-    movie_label.pack(side='top')
+    movie_label.grid(row=1, column=1)
+
+
+def send_invite(window, r1, r2, r3, r4, timeentry, dateentry):
+    yag = yagmail.SMTP('noreply.dbfinalproject@gmail.com',
+                       oauth2_file="~/oauth2_creds.json")
+    recipient1 = r1.get()
+    recipient2 = r2.get()
+    recipient3 = r3.get()
+    recipient4 = r4.get()
+    time = timeentry.get()
+    date = dateentry.get()
+    body = f"You have received a movie night invitation!\nMovie: {M_movie}\nTime & Date: {time} on {date}\n"
+    rdict = [recipient1, recipient2, recipient3, recipient4]
+    for i in rdict:
+        yag.send(to=i, subject='Movie Night Invitation!', contents=body)
+    window.destroy()
 
 
 def random_movie(window):
@@ -86,25 +141,80 @@ def random_movie(window):
         f'{window_width}x{window_height}+{center_x}+{center_y}')
     random_window.minsize(600, 400)
     random_window.maxsize(1200, 750)
-
+    blank_label = tk.Label(random_window, text='            ',
+                           fg="black", bg='#AF8FE9', width=50)
     random_button = tk.Button(random_window, text='Generate Random Movie',
                               bg='#ACD1AF', height=2, width=15, command=lambda: generateRandomMovie(random_window))
-    random_button.pack(side='top')
+    blank_label.grid(row=0, column=0)
+    random_button.grid(row=0, column=1)
+    r1label = tk.Label(random_window, text='Recipient 1: ',
+                       fg="black", bg='#AF8FE9', width=50)
+    r1entry = tk.Entry(random_window, fg="black",
+                       bg="white", width=25)
+    r2label = tk.Label(random_window, text='Recipient 2: ',
+                       fg="black", bg='#AF8FE9', width=50)
+    r2entry = tk.Entry(random_window, fg="black",
+                       bg="white", width=25)
+    r3label = tk.Label(random_window, text='Recipient 3: ',
+                       fg="black", bg='#AF8FE9', width=50)
+    r3entry = tk.Entry(random_window, fg="black",
+                       bg="white", width=25)
+    r4label = tk.Label(random_window, text='Recipient 4: ',
+                       fg="black", bg='#AF8FE9', width=50)
+    r4entry = tk.Entry(random_window, fg="black",
+                       bg="white", width=25)
+    r1label.grid(row=2, column=0)
+    r1entry.grid(row=2, column=1)
+    r2label.grid(row=3, column=0)
+    r2entry.grid(row=3, column=1)
+    r3label.grid(row=4, column=0)
+    r3entry.grid(row=4, column=1)
+    r4label.grid(row=5, column=0)
+    r4entry.grid(row=5, column=1)
+    time_label = tk.Label(random_window, text='Time: ',
+                          fg="black", bg='#AF8FE9', width=50)
+    time_entry = tk.Entry(random_window, fg="black",
+                          bg="white", width=25)
+    date_label = tk.Label(random_window, text='Date: ',
+                          fg="black", bg='#AF8FE9', width=50)
+    date_entry = tk.Entry(random_window, fg="black",
+                          bg="white", width=25)
+    time_label.grid(row=6, column=0)
+    time_entry.grid(row=6, column=1)
+    date_label.grid(row=7, column=0)
+    date_entry.grid(row=7, column=1)
+    sendinvite_button = tk.Button(random_window, text='Send Invite', bg='#ACD1AF',
+                                  height=2, width=15, command=lambda: send_invite(random_window, r1entry, r2entry, r3entry, r4entry, time_entry, date_entry))
     back_button = tk.Button(
         random_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(random_window))
-    back_button.pack(side='bottom')
+    sendinvite_button.grid(row=8, column=1)
+    back_button.grid(row=9, column=1)
 
     random_window.mainloop()
 
 
 def searchentry(window, sentry):
     title = sentry.get()
-    mycursor.execute(f"SELECT name, year FROM movie WHERE name = \'{title}\'")
+    mycursor.execute(
+        f"SELECT name, year, movieID FROM movie WHERE name = \'{title}\'")
     titles_tuple = mycursor.fetchall()
-    for i in titles_tuple:
-        newLabel = tk.Label(window, text=i,
-                            fg="black", bg='#AF8FE9', width=50)
-        newLabel.grid(row=4, column=1)
+    labelstr = ""
+    for i in range(len(titles_tuple)):
+        genrestr = ""
+        mycursor.execute(
+            f"SELECT genreID FROM movie_genre WHERE movieID = \"{titles_tuple[i][2]}\"")
+        g = mycursor.fetchall()
+        for id in g:
+            mycursor.execute(f"SELECT name FROM genre WHERE genreID = {id}")
+            genre = mycursor.fetchall()
+            for gen in genre[0]:
+                genrestr += gen + " "
+        labelstr += titles_tuple[i][0] + " " + \
+            str(titles_tuple[i][1]) + " " + genrestr + "\n"
+
+    newLabel = tk.Label(window, text=labelstr,
+                        fg="black", bg='#AF8FE9', width=50)
+    newLabel.grid(row=1, column=1)
 
 
 def search_movies(main_window):
@@ -137,7 +247,7 @@ def search_movies(main_window):
     search_entry.grid(row=0, column=1)
     search_button = tk.Button(search_window, text='Submit',
                               bg='#ACD1AF', height=2, width=15, command=lambda: searchentry(search_window, search_entry))
-    search_button.grid(row=1, column=1)
+    search_button.grid(row=2, column=1)
     back_button = tk.Button(
         search_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(search_window))
     back_button.grid(row=6, column=1)
@@ -181,9 +291,16 @@ def add_movie(main_window):
 
     submit_button = tk.Button(
         add_window, text='Submit', bg='#ACD1AF', height=2, width=15,
+
+        command=lambda: add_entry(rEntry2, rEntry3))
+    submit_button.grid(row=2, column=1)
+    back_button = tk.Button(
+        add_window, text='Back', bg='#ACD1AF', height=2, width=15,
+        command=lambda: main_menu(add_window))
+    back_button.grid(row=3, column=1)
          command=lambda: add_entry( rEntry2, rEntry3))
     submit_button.grid(row=6, column=1)
-    
+   
 
     add_window.mainloop()
 
@@ -201,14 +318,39 @@ def add_entry(name, year):
     mycursor.execute(sql, vals)
     mydb.commit()
 
+def add_entry(name, year):
+
+    mycursor.execute("SELECT MAX(movieID) FROM movie")
+    result = mycursor.fetchall()
+    if result[0][0] == None:
+        movieID = "tt0"
+    else:
+        movieID = str(result[0][0] + 1)
+
+    sql = "INSERT INTO movie (movieID, name, year) VALUES (%s, %s, %s)"
+    vals = (movieID, name, year)
+    mycursor.execute(sql, vals)
+    mydb.commit()
+
+
 def remove_entry_button(window, entry):
     title = entry.get()
+
+    # Check if movie is stored in database
+    mycursor.execute(f"SELECT * FROM movie WHERE name = \'{title}\'")
+    q1 = mycursor.fetchall()
+    for i in q1:
+        for j in i:
+            if title in j == False:
+                unavailable_label = tk.Label(window, text='Movie Not In Database',
+                                             fg="black", bg='#AF8FE9', width=50)
+                unavailable_label.grid(row=3, column=0)
     mycursor.execute(f"DELETE FROM movie WHERE name = \'{title}\'")
     mydb.commit()
     donestr = f"{title} has been successfully removed from the database."
     done_label = tk.Label(window, text=donestr,
                           fg="black", bg='#AF8FE9', width=50)
-    done_label.grid(row=3, column=1)
+    done_label.grid(row=4, column=1)
 
 
 def remove_movie(main_window):
@@ -239,7 +381,7 @@ def remove_movie(main_window):
     movie_label.grid(row=0, column=0)
     movie_entry.grid(row=0, column=1)
     submit_button = tk.Button(
-        remove_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: remove_movie(movie_entry))
+        remove_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: remove_movie(remove_window, movie_entry))
     submit_button.grid(row=1, column=1)
     back_button = tk.Button(
         remove_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(remove_window))
@@ -325,7 +467,8 @@ def send_invitation(main_window):
     # Time label and entry box
     movie_label = tk.Label(send_window, text='Movie: ',
                            fg="black", bg='#AF8FE9', width=50)
-    movie_entry = tk.Entry(send_window, fg="black", bg="white", width=25)
+    movie_entry = tk.Entry(send_window, fg="black",
+                           bg="white", width=25, text=M_movie)
     time_label = tk.Label(send_window, text='Time: ',
                           fg="black", bg='#AF8FE9', width=50)
     date_label = tk.Label(send_window, text='Date: ',
@@ -377,7 +520,7 @@ def main_menu(window):
 
     # If clicked, goes tot he view movies window
     view_button = tk.Button(
-        mainmenu_window, text='View All Movies', bg='#ACD1AF', height=2, width=15, command=lambda: search_movies(mainmenu_window))
+        mainmenu_window, text='Search', bg='#ACD1AF', height=2, width=15, command=lambda: search_movies(mainmenu_window))
     view_button.pack(side='top')
 
     # If Clicked, goes to the add movie window
@@ -570,7 +713,6 @@ def login(window):
 fwindow = tk.Tk()
 login(fwindow)
 
-mydb.close()
 # "#AF8FE9"
 
 
