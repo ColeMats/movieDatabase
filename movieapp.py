@@ -2,12 +2,11 @@ from ipaddress import collapse_addresses
 from re import M, U, search
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
-from tkinter.tix import COLUMN
 from turtle import back
 import random
 import csv
 
-import yagmail
+#import yagmail
 from email.mime.text import MIMEText
 
 import mysql.connector
@@ -88,7 +87,6 @@ def createTables():
     mycursor.execute("ALTER TABLE user ADD UNIQUE (email)")
     mydb.commit()
 
-
 # adds movies into the db from the csv file
 def movieintodb():
     with open("movies.csv") as file:
@@ -103,7 +101,7 @@ def movieintodb():
                 mycursor.execute(sql, vals)
                 mydb.commit()
     print("done")
-
+movieintodb()
 
 def generateRandomMovie(window):
     # pick a random movie
@@ -319,15 +317,26 @@ def add_movie(main_window):
 def add_entry(name, year):
 
     mycursor.execute("SELECT MAX(movieID) FROM movie")
-    result = mycursor.fetchall()
-    if result[0][0] == None:
-        movieID = "tt0"
-    else:
-        movieID = str(result[0][0] + 1)
 
+         #command=lambda: add_entry(rEntry2, rEntry3))
+    submit_button.grid(row=6, column=1)
+   
+
+    add_window.mainloop()
+
+def add_entry(name, year):
+    
+    mycursor.execute("SELECT COUNT(*) FROM movie") 
+
+    result = mycursor.fetchall()
+    print(result[0][0])
+    if result[0][0] == None:
+        movieID = "0"
+    else:
+        movieID = str(int(result[0][0]) + 1) + "1"
     sql = "INSERT INTO movie (movieID, name, year) VALUES (%s, %s, %s)"
     vals = (movieID, name, year)
-    mycursor.execute(sql, vals)
+    mycursor.executemany(sql, vals)
     mydb.commit()
 
 
@@ -379,7 +388,7 @@ def remove_movie(main_window):
     movie_label.grid(row=0, column=0)
     movie_entry.grid(row=0, column=1)
     submit_button = tk.Button(
-        remove_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: remove_movie(remove_window, movie_entry))
+        remove_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: remove_entry_button(remove_window, movie_entry))
     submit_button.grid(row=1, column=1)
     back_button = tk.Button(
         remove_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(remove_window))
