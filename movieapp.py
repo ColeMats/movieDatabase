@@ -14,9 +14,21 @@ import smtplib
 import ssl
 
 
+import os
+from twilio.rest import Client
+
+# 1f5a2b3310727ffee794c580c285b740
+# c6sdaINPR5E666qnYw7Guv0mUK3Ye9of
+
+# Find your Account SID and Auth Token at twilio.com/console
+# and set the environment variables. See http://twil.io/secure
+account_sid = 'ACcfb6ac9c89d96d60ad17d6bb9857acb4'
+auth_token = '1f5a2b3310727ffee794c580c285b740'
+client = Client(account_sid, auth_token)
+
 # Connects database
 mydb = mysql.connector.connect(
-    host="localhost", user="root", password="Password1",  auth_plugin='mysql_native_password', database='movies_and_shows')
+    host="localhost", user="root", password="Password1!",  auth_plugin='mysql_native_password', database='movies_and_shows')
 mycursor = mydb.cursor()
 print(mydb)
 
@@ -59,7 +71,7 @@ user_name = ""
 time = ""
 date = ""
 recipients = ()
-M_movie = None
+M_movie = ""
 
 
 # Unneeded, to show how the columnds are made and with what data types each column is.
@@ -96,6 +108,7 @@ def generateRandomMovie(window):
     mycursor.execute("SELECT name FROM movie")
     names = mycursor.fetchall()
     movie_ind = random.randrange(len(names))
+    global M_movie
     M_movie = names[movie_ind]
     movie_label = tk.Label(window, text=M_movie,
                            fg="black", bg='#AF8FE9', width=50)
@@ -103,18 +116,20 @@ def generateRandomMovie(window):
 
 
 def send_invite(window, r1, r2, r3, r4, timeentry, dateentry):
-    yag = yagmail.SMTP('noreply.dbfinalproject@gmail.com',
-                       oauth2_file="~/oauth2_creds.json")
     recipient1 = r1.get()
     recipient2 = r2.get()
     recipient3 = r3.get()
     recipient4 = r4.get()
     time = timeentry.get()
     date = dateentry.get()
-    body = f"You have received a movie night invitation!\nMovie: {M_movie}\nTime & Date: {time} on {date}\n"
     rdict = [recipient1, recipient2, recipient3, recipient4]
     for i in rdict:
-        yag.send(to=i, subject='Movie Night Invitation!', contents=body)
+        message = client.messages.create(
+            body=f'You recieved a movie invite!\nMovie: {M_movie}\nTime: {time}\nDate: {date}',
+            from_='+13235290452',
+            media_url=[
+                'https://c1.staticflickr.com/3/2899/14341091933_1e92e62d12_b.jpg'],
+            to=i)
     window.destroy()
 
 
@@ -289,13 +304,20 @@ def add_movie(main_window):
 
     submit_button = tk.Button(
         add_window, text='Submit', bg='#ACD1AF', height=2, width=15,
-
         command=lambda: add_entry(rEntry2, rEntry3))
     submit_button.grid(row=2, column=1)
     back_button = tk.Button(
         add_window, text='Back', bg='#ACD1AF', height=2, width=15,
         command=lambda: main_menu(add_window))
     back_button.grid(row=3, column=1)
+
+    add_window.mainloop()
+
+
+def add_entry(name, year):
+
+    mycursor.execute("SELECT MAX(movieID) FROM movie")
+
          #command=lambda: add_entry(rEntry2, rEntry3))
     submit_button.grid(row=6, column=1)
    
@@ -305,6 +327,7 @@ def add_movie(main_window):
 def add_entry(name, year):
     
     mycursor.execute("SELECT COUNT(*) FROM movie") 
+
     result = mycursor.fetchall()
     print(result[0][0])
     if result[0][0] == None:
@@ -404,77 +427,6 @@ def send_entry(window, entry1, entry2, entry3, entry4, date_entry, time_entry):
             server.sendmail(sender_email, reciever_email, message)
 
 
-def send_invitation(main_window):
-    main_window.destroy()
-    send_window = tk.Tk()
-    send_window.title('Movie App Database: Send Invitation')
-    window_width = 1200
-    window_height = 750
-    send_window.configure(bg='#AF8FE9')
-
-    # get the screen dimension
-    screen_width = send_window.winfo_screenwidth()
-    screen_height = send_window.winfo_screenheight()
-
-    # find the center point
-    center_x = int(screen_width/2 - window_width / 2)
-    center_y = int(screen_height/2 - window_height / 2)
-
-    # set the position of the window to the center of the screen
-    send_window.geometry(
-        f'{window_width}x{window_height}+{center_x}+{center_y}')
-    send_window.minsize(600, 400)
-    send_window.maxsize(1200, 750)
-
-    # Creates and places all labels for the entry boxes
-    rEntry1_label = tk.Label(send_window, text='Recipient: ',
-                             fg="black", bg='#AF8FE9', width=50)
-    rEntry2_label = tk.Label(send_window, text='Recipient: ',
-                             fg="black", bg='#AF8FE9', width=50)
-    rEntry3_label = tk.Label(send_window, text='Recipient: ',
-                             fg="black", bg='#AF8FE9', width=50)
-    rEntry4_label = tk.Label(send_window, text='Recipient: ',
-                             fg="black", bg='#AF8FE9', width=50)
-    rEntry2_label.grid(row=0, column=0)
-    rEntry3_label.grid(row=1, column=0)
-    rEntry1_label.grid(row=2, column=0)
-    rEntry4_label.grid(row=3, column=0)
-    rEntry1 = tk.Entry(send_window, fg="black", bg="white", width=50)
-    rEntry2 = tk.Entry(send_window, fg="black", bg="white", width=50)
-    rEntry3 = tk.Entry(send_window, fg="black", bg="white", width=50)
-    rEntry4 = tk.Entry(send_window, fg="black", bg="white", width=50)
-    rEntry1.grid(row=0, column=1)
-    rEntry2.grid(row=1, column=1)
-    rEntry3.grid(row=2, column=1)
-    rEntry4.grid(row=3, column=1)
-
-    # Time label and entry box
-    movie_label = tk.Label(send_window, text='Movie: ',
-                           fg="black", bg='#AF8FE9', width=50)
-    movie_entry = tk.Entry(send_window, fg="black",
-                           bg="white", width=25, text=M_movie)
-    time_label = tk.Label(send_window, text='Time: ',
-                          fg="black", bg='#AF8FE9', width=50)
-    date_label = tk.Label(send_window, text='Date: ',
-                          fg="black", bg='#AF8FE9', width=50)
-    time_entry = tk.Entry(send_window, fg="black", bg="white", width=25)
-    date_entry = tk.Entry(send_window, fg="black", bg="white", width=25)
-    time_entry.grid(row=4, column=1)
-    time_label.grid(row=4, column=0)
-    date_label.grid(row=5, column=0)
-    date_entry.grid(row=5, column=1)
-    movie_label.grid(row=6, column=0)
-    movie_entry.grid(row=6, column=1)
-    submit_button = tk.Button(
-        send_window, text='Submit', bg='#ACD1AF', height=2, width=15, command=lambda: send_entry(send_window, rEntry1, rEntry2, rEntry3, rEntry4, date_entry, time_entry))
-    submit_button.grid(row=7, column=1)
-    back_button = tk.Button(
-        send_window, text='Back', bg='#ACD1AF', height=2, width=15, command=lambda: main_menu(send_window))
-    back_button.grid(row=8, column=1)
-
-    send_window.mainloop()
-
-
 def main_menu(window):
     window.destroy()
     mainmenu_window = tk.Tk()
@@ -516,11 +468,6 @@ def main_menu(window):
     delete_button = tk.Button(
         mainmenu_window, text='Remove a Movie', bg='#ACD1AF', height=2, width=15, command=lambda: remove_movie(mainmenu_window))
     delete_button.pack(side='top')
-
-    # If clicked, goes to the send invite window
-    send_button = tk.Button(
-        mainmenu_window, text='Send Invitation', bg='#ACD1AF', height=2, width=15, command=lambda: send_invitation(mainmenu_window))
-    send_button.pack(side='top')
 
     # If cliked, destroys the window and quits the application
     quit_button = tk.Button(
